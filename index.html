@@ -6,149 +6,258 @@
   <title>StegOS Secure Suite</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">STG</div>
-        <div>
-          <h1>StegOS Secure Suite</h1>
-          <p>Encrypt, hide, share, extract, and analyze stego images</p>
-        </div>
+  <div class="app-shell">
+    <header class="app-header">
+      <button id="homeBtn" class="ghost-btn">🏠 Dashboard</button>
+      <div class="app-title-wrap">
+        <h1>StegOS Secure Suite</h1>
+        <p>Hide, extract, share, and analyze with confidence.</p>
       </div>
-      <div class="badges">
-        <span>AES-256-GCM</span>
-        <span>PBKDF2</span>
-        <span>LSB</span>
-      </div>
+      <button id="openShareBtn" class="ghost-btn">🔒 Secure Share</button>
     </header>
 
-    <main class="grid">
-      <section class="card" id="encodeCard"></section>
-      <section class="card" id="decodeCard"></section>
-      <section class="card" id="shareCard"></section>
-      <section class="card" id="analyzeCard"></section>
+    <main class="app-main">
+      <section id="dashboardView" class="view active">
+        <div class="dashboard-center fade-in">
+          <h2>Choose an action</h2>
+          <div class="dashboard-grid">
+            <button class="action-card" data-target="hideView">
+              <span class="icon">🔐</span>
+              <strong>Hide Message</strong>
+              <small>Embed encrypted text or file in image</small>
+            </button>
+            <button class="action-card" data-target="extractView">
+              <span class="icon">🔓</span>
+              <strong>Extract Message</strong>
+              <small>Recover hidden content from stego image</small>
+            </button>
+            <button class="action-card" data-target="analyzeView">
+              <span class="icon">📊</span>
+              <strong>Analyze Image</strong>
+              <small>Estimate stego likelihood and metrics</small>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="hideView" class="view">
+        <div class="module-card fade-in">
+          <div class="module-head">
+            <h2>Hide Message</h2>
+            <button class="ghost-btn" data-open="shareView">Send with Secure Share</button>
+          </div>
+
+          <ol class="stepper" id="hideStepper">
+            <li data-step="1"><span>1</span>Upload Image</li>
+            <li data-step="2"><span>2</span>Choose Secret Type</li>
+            <li data-step="3"><span>3</span>Enter Password</li>
+            <li data-step="4"><span>4</span>Hide Message</li>
+          </ol>
+
+          <div class="module-body">
+            <div class="panel" id="hideStep1">
+              <h3>Step 1: Upload Image</h3>
+              <div id="carrierDrop" class="dropzone">Click or drag image here</div>
+              <input id="carrierFile" class="hidden" type="file" accept="image/png,image/bmp,image/jpeg" />
+              <img id="carrierPreview" class="preview hidden" alt="Carrier preview" />
+              <div class="badge-row">
+                <span class="badge"><small>IMAGE</small><strong id="chipImage">Not loaded</strong></span>
+                <span class="badge"><small>CAPACITY</small><strong id="chipCapacity">0 B</strong></span>
+                <span class="badge"><small>REQUIRED</small><strong id="chipRequired">0 B</strong></span>
+              </div>
+            </div>
+
+            <div class="panel" id="hideStep2">
+              <h3>Step 2: Choose Secret Type</h3>
+              <div class="toggle-row">
+                <label class="toggle-pill">
+                  <input type="radio" name="payloadMode" value="text" checked />
+                  <span>Text</span>
+                </label>
+                <label class="toggle-pill">
+                  <input type="radio" name="payloadMode" value="file" />
+                  <span>File</span>
+                </label>
+              </div>
+
+              <div id="textWrap" class="fade-in">
+                <textarea id="secretText" placeholder="Type your secret message"></textarea>
+              </div>
+
+              <div id="fileWrap" class="hidden fade-in">
+                <div class="inline-actions">
+                  <button id="pickSecretFileBtn" type="button" class="ghost-btn">Choose File</button>
+                  <span id="secretFileNote" class="inline-note">No file selected</span>
+                </div>
+                <input id="secretFile" type="file" class="hidden" />
+              </div>
+            </div>
+
+            <div class="panel" id="hideStep3">
+              <h3>Step 3: Enter Password</h3>
+              <div class="password-wrap">
+                <input id="encodePassword" type="password" placeholder="Encryption password" />
+                <button id="toggleEncodePassword" type="button" class="ghost-btn">Show</button>
+              </div>
+              <div class="strength-track"><span id="encodeStrengthBar"></span></div>
+              <small id="encodeStrengthText" class="hint">Password strength: weak</small>
+            </div>
+
+            <div class="panel" id="hideStep4">
+              <h3>Step 4: Action</h3>
+              <div class="inline-actions wrap">
+                <button id="embedBtn" type="button" class="primary-btn" disabled>Hide Message</button>
+                <button id="saveStegoBtn" type="button" class="success-btn hidden">Download Stego Image</button>
+              </div>
+              <div id="embedLoading" class="loading hidden"><span class="spinner"></span>Hiding message...</div>
+              <div id="embedSuccess" class="success-state hidden">
+                <span class="checkmark">✓</span>
+                <strong>Message successfully hidden</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="extractView" class="view">
+        <div class="module-card fade-in">
+          <div class="module-head">
+            <h2>Extract Message</h2>
+          </div>
+
+          <ol class="stepper" id="extractStepper">
+            <li data-step="1"><span>1</span>Upload Stego Image</li>
+            <li data-step="2"><span>2</span>Enter Password</li>
+            <li data-step="3"><span>3</span>Extract</li>
+          </ol>
+
+          <div class="module-body">
+            <div class="panel">
+              <h3>Step 1: Upload Stego Image</h3>
+              <div class="inline-actions wrap">
+                <button id="pickDecodeImageBtn" type="button" class="ghost-btn">Choose Image</button>
+                <span id="decodeImageNote" class="inline-note">No image selected</span>
+              </div>
+              <input id="decodeImageFile" type="file" class="hidden" accept="image/png,image/bmp" />
+            </div>
+
+            <div class="panel">
+              <h3>Step 2: Enter Password</h3>
+              <div class="password-wrap">
+                <input id="decodePassword" type="password" placeholder="Decryption password" />
+                <button id="toggleDecodePassword" type="button" class="ghost-btn">Show</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h3>Step 3: Extract</h3>
+              <div class="inline-actions wrap">
+                <button id="extractBtn" type="button" class="primary-btn" disabled>Extract Message</button>
+                <a id="decodedFileLink" class="success-btn hidden" download>Download recovered file</a>
+                <button id="copyResultBtn" type="button" class="ghost-btn hidden">Copy Text</button>
+              </div>
+              <div id="extractLoading" class="loading hidden"><span class="spinner"></span>Extracting...</div>
+              <div id="decodeState" class="state-pill">Awaiting input</div>
+              <pre id="decodeResult" class="result-box">No output yet</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="shareView" class="view">
+        <div class="module-card fade-in">
+          <div class="module-head">
+            <h2>Secure Share</h2>
+          </div>
+
+          <div class="module-body">
+            <div class="grid-2">
+              <label>Server URL
+                <input id="serverUrl" value="http://localhost:8088" />
+              </label>
+              <label>Mailbox ID
+                <input id="mailboxId" placeholder="example: team_alpha" />
+              </label>
+              <label>Passphrase
+                <input id="mailboxPassphrase" type="password" placeholder="Mailbox secret" />
+              </label>
+              <label>Sender Name
+                <input id="senderName" placeholder="example: Alice" />
+              </label>
+            </div>
+
+            <div class="inline-actions wrap">
+              <button id="registerMailboxBtn" type="button" class="ghost-btn">Register</button>
+              <button id="sendStegoBtn" type="button" class="primary-btn">Send</button>
+              <button id="refreshInboxBtn" type="button" class="ghost-btn">Refresh Inbox</button>
+            </div>
+
+            <div class="inbox-list" id="inboxBody">
+              <div class="empty-row">No messages loaded</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="analyzeView" class="view">
+        <div class="module-card fade-in">
+          <div class="module-head">
+            <h2>Stego Analyzer</h2>
+          </div>
+
+          <div class="module-body">
+            <div class="panel">
+              <h3>Upload Image</h3>
+              <div class="inline-actions wrap">
+                <button id="pickAnalyzeImageBtn" type="button" class="ghost-btn">Choose Image</button>
+                <span id="analyzeImageNote" class="inline-note">No image selected</span>
+              </div>
+              <input id="analyzeImageFile" type="file" class="hidden" accept="image/png,image/bmp,image/jpeg" />
+              <button id="analyzeBtn" type="button" class="primary-btn" disabled>Analyze</button>
+              <div id="analyzeLoading" class="loading hidden"><span class="spinner"></span>Analyzing...</div>
+            </div>
+
+            <div class="metrics-grid">
+              <article class="metric-card verdict" id="verdictCard">
+                <small>Verdict</small>
+                <strong id="metricVerdict">-</strong>
+              </article>
+              <article class="metric-card">
+                <small>Confidence</small>
+                <strong id="metricConfidence">-</strong>
+                <div class="progress"><span id="confidenceBar"></span></div>
+              </article>
+              <article class="metric-card">
+                <small>LSB Ratio (R/G/B)</small>
+                <strong id="metricLsb">-</strong>
+              </article>
+              <article class="metric-card">
+                <small>Chi (R/G/B)</small>
+                <strong id="metricChi">-</strong>
+              </article>
+              <article class="metric-card">
+                <small>Entropy</small>
+                <strong id="metricEntropy">-</strong>
+              </article>
+              <article class="metric-card">
+                <small>Transitions</small>
+                <strong id="metricTransition">-</strong>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer class="status">
-      <div id="statusDot"></div>
+    <footer class="status-bar" id="statusBar">
+      <span id="statusDot"></span>
       <span id="statusText">Ready.</span>
-      <span class="version">v3.0</span>
     </footer>
   </div>
-
-  <template id="encodeTemplate">
-    <div class="head"><h2>1) Encode (Text or File)</h2></div>
-    <div class="body">
-      <div class="chips">
-        <div><small>IMAGE</small><strong id="chipImage">Not loaded</strong></div>
-        <div><small>CAPACITY</small><strong id="chipCapacity">0 B</strong></div>
-        <div><small>REQUIRED</small><strong id="chipRequired">0 B</strong></div>
-      </div>
-      <label>Carrier image</label>
-      <div id="carrierDrop" class="drop">Click or drop image here</div>
-      <input id="carrierFile" class="hidden" type="file" accept="image/png,image/bmp,image/jpeg" />
-      <img id="carrierPreview" class="preview hidden" alt="Carrier preview" />
-
-      <label>Payload mode</label>
-      <div class="row">
-        <label><input type="radio" name="payloadMode" value="text" checked /> Text</label>
-        <label><input type="radio" name="payloadMode" value="file" /> File</label>
-      </div>
-      <div id="textWrap">
-        <label>Secret text</label>
-        <textarea id="secretText" placeholder="Enter secret message"></textarea>
-      </div>
-      <div id="fileWrap" class="hidden">
-        <label>Secret file</label>
-        <div class="row">
-          <button id="pickSecretFileBtn" type="button">Choose file</button>
-          <span id="secretFileNote" class="note">No file selected</span>
-        </div>
-        <input id="secretFile" type="file" class="hidden" />
-      </div>
-      <label>Password</label>
-      <input id="encodePassword" type="password" placeholder="Encryption password" />
-      <div class="row">
-        <button id="embedBtn" type="button" class="primary">Encrypt and embed</button>
-        <button id="saveStegoBtn" type="button" class="success" disabled>Save stego PNG</button>
-      </div>
-    </div>
-  </template>
-
-  <template id="decodeTemplate">
-    <div class="head"><h2>2) Decode</h2></div>
-    <div class="body">
-      <label>Stego image</label>
-      <div class="row">
-        <button id="pickDecodeImageBtn" type="button">Choose image</button>
-        <span id="decodeImageNote" class="note">No image selected</span>
-      </div>
-      <input id="decodeImageFile" type="file" class="hidden" accept="image/png,image/bmp" />
-      <label>Password</label>
-      <input id="decodePassword" type="password" placeholder="Decryption password" />
-      <div class="row">
-        <button id="extractBtn" type="button" class="primary">Extract and decrypt</button>
-        <a id="decodedFileLink" class="success hidden" download>Download recovered file</a>
-      </div>
-      <label>Result</label>
-      <pre id="decodeResult">No output yet</pre>
-    </div>
-  </template>
-
-  <template id="shareTemplate">
-    <div class="head"><h2>3) Secure Share (Local API)</h2></div>
-    <div class="body">
-      <label>Server URL</label>
-      <input id="serverUrl" value="http://localhost:8088" />
-      <label>Mailbox ID</label>
-      <input id="mailboxId" placeholder="example: team_alpha" />
-      <label>Mailbox passphrase</label>
-      <input id="mailboxPassphrase" type="password" placeholder="Mailbox secret" />
-      <label>Sender name (optional)</label>
-      <input id="senderName" placeholder="example: Alice" />
-      <div class="row wrap">
-        <button id="registerMailboxBtn" type="button">Register mailbox</button>
-        <button id="sendStegoBtn" type="button" class="primary">Send current stego</button>
-        <button id="refreshInboxBtn" type="button">Refresh inbox</button>
-      </div>
-      <div class="tableWrap">
-        <table>
-          <thead><tr><th>ID</th><th>Sender</th><th>Time</th><th>Size</th></tr></thead>
-          <tbody id="inboxBody"><tr><td colspan="4">No messages loaded</td></tr></tbody>
-        </table>
-      </div>
-      <div class="row wrap">
-        <button id="downloadSelectedBtn" type="button">Download selected</button>
-        <button id="deleteSelectedBtn" type="button" class="danger">Delete selected</button>
-      </div>
-    </div>
-  </template>
-
-  <template id="analyzeTemplate">
-    <div class="head"><h2>4) Stego Analyzer</h2></div>
-    <div class="body">
-      <label>Image</label>
-      <div class="row">
-        <button id="pickAnalyzeImageBtn" type="button">Choose image</button>
-        <span id="analyzeImageNote" class="note">No image selected</span>
-      </div>
-      <input id="analyzeImageFile" type="file" class="hidden" accept="image/png,image/bmp,image/jpeg" />
-      <button id="analyzeBtn" type="button" class="warn">Run analysis</button>
-      <div class="bar"><span id="confidenceBar"></span></div>
-      <div class="metrics">
-        <div><small>Verdict</small><strong id="metricVerdict">-</strong></div>
-        <div><small>Confidence</small><strong id="metricConfidence">-</strong></div>
-        <div><small>LSB R/G/B</small><strong id="metricLsb">-</strong></div>
-        <div><small>Chi R/G/B</small><strong id="metricChi">-</strong></div>
-        <div><small>Entropy</small><strong id="metricEntropy">-</strong></div>
-        <div><small>Transitions</small><strong id="metricTransition">-</strong></div>
-      </div>
-    </div>
-  </template>
 
   <canvas id="workCanvas" class="hidden"></canvas>
   <script src="app.js"></script>
