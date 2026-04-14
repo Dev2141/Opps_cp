@@ -535,7 +535,11 @@ function analyzeStego(imageData) {
   const transitionIndicator = clamp01(1 - Math.abs(transition - 0.5) * 2);
 
   const confidence = clamp01(
-    0.18 * chiIndicator + 0.07 * balanceIndicator + 0.05 * entropyIndicator + 0.05 * transitionIndicator + 0.65 * headerIndicator
+    (0.18 * chiIndicator) +
+    (0.07 * balanceIndicator) +
+    (0.05 * entropyIndicator) +
+    (0.05 * transitionIndicator) +
+    (0.65 * headerIndicator)
   ) * 100;
 
   const verdict = confidence >= 72 ? "Likely hidden data" : confidence >= 45 ? "Suspicious" : "Likely clean";
@@ -614,7 +618,11 @@ async function handleRegisterMailbox() {
     const creds = getMailboxCreds();
     if (!creds.mailboxId || !creds.passphrase) return setStatus("Mailbox ID and passphrase are required.", "warn");
     const res = await apiPost("/api/mailbox/register", creds);
-    setStatus(res.ok ? `Mailbox \"${creds.mailboxId}\" ready.` : (res.message || "Mailbox exists."), res.ok ? "success" : "warn");
+    if (res.ok) {
+      setStatus(`Mailbox \"${creds.mailboxId}\" ready.`, "success");
+    } else {
+      setStatus(res.message || "Mailbox exists.", "warn");
+    }
   } catch (err) {
     setStatus(`Mailbox register failed: ${err.message}`, "error");
   }
