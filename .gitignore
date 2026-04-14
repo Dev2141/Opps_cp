@@ -1,0 +1,14 @@
+# Java build artifacts
+*.class
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Runtime outputs / local storage
+output/
+shared/
+shared_test/inboxes/
+
+# Logs
+*.log

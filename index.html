@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StegOS Secure Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">STG</div>
+        <div>
+          <h1>StegOS Secure Suite</h1>
+          <p>Encrypt, hide, share, extract, and analyze stego images</p>
+        </div>
+      </div>
+      <div class="badges">
+        <span>AES-256-GCM</span>
+        <span>PBKDF2</span>
+        <span>LSB</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card" id="encodeCard"></section>
+      <section class="card" id="decodeCard"></section>
+      <section class="card" id="shareCard"></section>
+      <section class="card" id="analyzeCard"></section>
+    </main>
+
+    <footer class="status">
+      <div id="statusDot"></div>
+      <span id="statusText">Ready.</span>
+      <span class="version">v3.0</span>
+    </footer>
+  </div>
+
+  <template id="encodeTemplate">
+    <div class="head"><h2>1) Encode (Text or File)</h2></div>
+    <div class="body">
+      <div class="chips">
+        <div><small>IMAGE</small><strong id="chipImage">Not loaded</strong></div>
+        <div><small>CAPACITY</small><strong id="chipCapacity">0 B</strong></div>
+        <div><small>REQUIRED</small><strong id="chipRequired">0 B</strong></div>
+      </div>
+      <label>Carrier image</label>
+      <div id="carrierDrop" class="drop">Click or drop image here</div>
+      <input id="carrierFile" class="hidden" type="file" accept="image/png,image/bmp,image/jpeg" />
+      <img id="carrierPreview" class="preview hidden" alt="Carrier preview" />
+
+      <label>Payload mode</label>
+      <div class="row">
+        <label><input type="radio" name="payloadMode" value="text" checked /> Text</label>
+        <label><input type="radio" name="payloadMode" value="file" /> File</label>
+      </div>
+      <div id="textWrap">
+        <label>Secret text</label>
+        <textarea id="secretText" placeholder="Enter secret message"></textarea>
+      </div>
+      <div id="fileWrap" class="hidden">
+        <label>Secret file</label>
+        <div class="row">
+          <button id="pickSecretFileBtn" type="button">Choose file</button>
+          <span id="secretFileNote" class="note">No file selected</span>
+        </div>
+        <input id="secretFile" type="file" class="hidden" />
+      </div>
+      <label>Password</label>
+      <input id="encodePassword" type="password" placeholder="Encryption password" />
+      <div class="row">
+        <button id="embedBtn" type="button" class="primary">Encrypt and embed</button>
+        <button id="saveStegoBtn" type="button" class="success" disabled>Save stego PNG</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="decodeTemplate">
+    <div class="head"><h2>2) Decode</h2></div>
+    <div class="body">
+      <label>Stego image</label>
+      <div class="row">
+        <button id="pickDecodeImageBtn" type="button">Choose image</button>
+        <span id="decodeImageNote" class="note">No image selected</span>
+      </div>
+      <input id="decodeImageFile" type="file" class="hidden" accept="image/png,image/bmp" />
+      <label>Password</label>
+      <input id="decodePassword" type="password" placeholder="Decryption password" />
+      <div class="row">
+        <button id="extractBtn" type="button" class="primary">Extract and decrypt</button>
+        <a id="decodedFileLink" class="success hidden" download>Download recovered file</a>
+      </div>
+      <label>Result</label>
+      <pre id="decodeResult">No output yet</pre>
+    </div>
+  </template>
+
+  <template id="shareTemplate">
+    <div class="head"><h2>3) Secure Share (Local API)</h2></div>
+    <div class="body">
+      <label>Server URL</label>
+      <input id="serverUrl" value="http://localhost:8088" />
+      <label>Mailbox ID</label>
+      <input id="mailboxId" placeholder="example: team_alpha" />
+      <label>Mailbox passphrase</label>
+      <input id="mailboxPassphrase" type="password" placeholder="Mailbox secret" />
+      <label>Sender name (optional)</label>
+      <input id="senderName" placeholder="example: Alice" />
+      <div class="row wrap">
+        <button id="registerMailboxBtn" type="button">Register mailbox</button>
+        <button id="sendStegoBtn" type="button" class="primary">Send current stego</button>
+        <button id="refreshInboxBtn" type="button">Refresh inbox</button>
+      </div>
+      <div class="tableWrap">
+        <table>
+          <thead><tr><th>ID</th><th>Sender</th><th>Time</th><th>Size</th></tr></thead>
+          <tbody id="inboxBody"><tr><td colspan="4">No messages loaded</td></tr></tbody>
+        </table>
+      </div>
+      <div class="row wrap">
+        <button id="downloadSelectedBtn" type="button">Download selected</button>
+        <button id="deleteSelectedBtn" type="button" class="danger">Delete selected</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="analyzeTemplate">
+    <div class="head"><h2>4) Stego Analyzer</h2></div>
+    <div class="body">
+      <label>Image</label>
+      <div class="row">
+        <button id="pickAnalyzeImageBtn" type="button">Choose image</button>
+        <span id="analyzeImageNote" class="note">No image selected</span>
+      </div>
+      <input id="analyzeImageFile" type="file" class="hidden" accept="image/png,image/bmp,image/jpeg" />
+      <button id="analyzeBtn" type="button" class="warn">Run analysis</button>
+      <div class="bar"><span id="confidenceBar"></span></div>
+      <div class="metrics">
+        <div><small>Verdict</small><strong id="metricVerdict">-</strong></div>
+        <div><small>Confidence</small><strong id="metricConfidence">-</strong></div>
+        <div><small>LSB R/G/B</small><strong id="metricLsb">-</strong></div>
+        <div><small>Chi R/G/B</small><strong id="metricChi">-</strong></div>
+        <div><small>Entropy</small><strong id="metricEntropy">-</strong></div>
+        <div><small>Transitions</small><strong id="metricTransition">-</strong></div>
+      </div>
+    </div>
+  </template>
+
+  <canvas id="workCanvas" class="hidden"></canvas>
+  <script src="app.js"></script>
+</body>
+</html>
