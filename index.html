@@ -4,262 +4,800 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StegOS Secure Suite</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <div class="app-shell">
-    <header class="app-header">
-      <button id="homeBtn" class="ghost-btn">🏠 Dashboard</button>
-      <div class="app-title-wrap">
-        <h1>StegOS Secure Suite</h1>
-        <p>Hide, extract, share, and analyze with confidence.</p>
+<body class="stegos-body">
+
+  <!-- Hidden canvas -->
+  <canvas id="workCanvas" style="display:none;"></canvas>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:9999;"></div>
+
+  <!-- ═══════ HEADER ═══════ -->
+  <header class="stegos-header" id="app-header">
+    <div class="container-fluid px-4 py-0 h-100 d-flex align-items-center justify-content-between">
+      <button class="btn-ghost-nav" onclick="navigateTo('dashboard')">
+        <i class="bi bi-house-fill me-1"></i> Home
+      </button>
+
+      <div class="header-logo" onclick="navigateTo('dashboard')" style="cursor:pointer;">
+        <div class="header-logo-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2L4 7V14C4 19.55 8.4 24.74 14 26C19.6 24.74 24 19.55 24 14V7L14 2Z" fill="url(#shieldGrad)" stroke="rgba(79,142,247,0.6)" stroke-width="1"/>
+            <path d="M11 14l2 2 4-4" stroke="#e8f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="shieldGrad" x1="4" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4f8ef7"/>
+                <stop offset="100%" stop-color="#1e3a8a"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="header-logo-text">StegOS</span>
       </div>
-      <button id="openShareBtn" class="ghost-btn">🔒 Secure Share</button>
-    </header>
 
-    <main class="app-main">
-      <section id="dashboardView" class="view active">
-        <div class="dashboard-center fade-in">
-          <h2>Choose an action</h2>
-          <div class="dashboard-grid">
-            <button class="action-card" data-target="hideView">
-              <span class="icon">🔐</span>
-              <strong>Hide Message</strong>
-              <small>Embed encrypted text or file in image</small>
-            </button>
-            <button class="action-card" data-target="extractView">
-              <span class="icon">🔓</span>
-              <strong>Extract Message</strong>
-              <small>Recover hidden content from stego image</small>
-            </button>
-            <button class="action-card" data-target="analyzeView">
-              <span class="icon">📊</span>
-              <strong>Analyze Image</strong>
-              <small>Estimate stego likelihood and metrics</small>
-            </button>
+      <button class="btn-ghost-nav btn-share-nav" onclick="navigateTo('share')">
+        <i class="bi bi-lock-fill me-1"></i> Secure Share <i class="bi bi-arrow-right ms-1"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════ NAV TABS ═══════ -->
+  <nav class="stegos-nav" id="app-nav">
+    <div class="container-fluid px-4">
+      <div class="nav-tabs-row">
+        <button class="nav-tab active" id="tab-dashboard" onclick="navigateTo('dashboard')">
+          <i class="bi bi-grid-3x3-gap me-1"></i> Dashboard
+        </button>
+        <button class="nav-tab" id="tab-hide" onclick="navigateTo('hide')">
+          <i class="bi bi-eye-slash me-1"></i> Hide
+        </button>
+        <button class="nav-tab" id="tab-extract" onclick="navigateTo('extract')">
+          <i class="bi bi-unlock me-1"></i> Extract
+        </button>
+        <button class="nav-tab" id="tab-share" onclick="navigateTo('share')">
+          <i class="bi bi-send me-1"></i> Share
+        </button>
+        <button class="nav-tab" id="tab-analyze" onclick="navigateTo('analyze')">
+          <i class="bi bi-bar-chart-line me-1"></i> Analyze
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════ MAIN ═══════ -->
+  <main class="stegos-main" id="app-main">
+
+    <!-- ══════════════════════ VIEW: DASHBOARD ══════════════════════ -->
+    <div class="view-panel active" id="view-dashboard">
+      <canvas id="particleCanvas" class="particle-canvas"></canvas>
+
+      <div class="dashboard-scroll">
+        <!-- HERO -->
+        <section class="hero-section text-center">
+          <div class="hero-badge mb-3" id="hero-badge">
+            <div class="hero-badge-dot"></div>
+            <span>Browser-Native Security &mdash; Zero Cloud Dependency</span>
           </div>
-        </div>
-      </section>
+          <h1 class="hero-title" id="hero-title">StegOS Secure Suite</h1>
+          <p class="hero-subtitle" id="hero-subtitle">The complete steganography toolkit. Hide secrets inside images, extract them safely, share via encrypted mailboxes, and detect hidden data — all running privately in your browser.</p>
+          <div class="hero-underline" id="hero-underline"></div>
 
-      <section id="hideView" class="view">
-        <div class="module-card fade-in">
-          <div class="module-head">
-            <h2>Hide Message</h2>
-            <button class="ghost-btn" data-open="shareView">Send with Secure Share</button>
-          </div>
-
-          <ol class="stepper" id="hideStepper">
-            <li data-step="1"><span>1</span>Upload Image</li>
-            <li data-step="2"><span>2</span>Choose Secret Type</li>
-            <li data-step="3"><span>3</span>Enter Password</li>
-            <li data-step="4"><span>4</span>Hide Message</li>
-          </ol>
-
-          <div class="module-body">
-            <div class="panel" id="hideStep1">
-              <h3>Step 1: Upload Image</h3>
-              <div id="carrierDrop" class="dropzone">Click or drag image here</div>
-              <input id="carrierFile" class="hidden" type="file" accept="image/png,image/bmp,image/jpeg" />
-              <img id="carrierPreview" class="preview hidden" alt="Carrier preview" />
-              <div class="badge-row">
-                <span class="badge"><small>IMAGE</small><strong id="chipImage">Not loaded</strong></span>
-                <span class="badge"><small>CAPACITY</small><strong id="chipCapacity">0 B</strong></span>
-                <span class="badge"><small>REQUIRED</small><strong id="chipRequired">0 B</strong></span>
-              </div>
+          <!-- Tech pills -->
+          <div class="stat-ribbon d-flex flex-wrap justify-content-center gap-3 mt-4" id="stat-ribbon">
+            <div class="stat-pill">
+              <span class="stat-pill-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4v5c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1z" fill="#4f8ef7" opacity=".25"/><path d="M8 1L2 4v5c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1z" stroke="#4f8ef7" stroke-width="1.2"/><path d="M5.5 8l2 2 3-3" stroke="#4f8ef7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              AES-256-GCM Encryption
             </div>
+            <div class="stat-pill">
+              <span class="stat-pill-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="#4f8ef7" stroke-width="1.2" fill="#4f8ef7" opacity=".15"/><circle cx="4" cy="6" r="1" fill="#4f8ef7"/><circle cx="4" cy="10" r="1" fill="#4f8ef7"/><rect x="7" y="5.5" width="6" height="1.2" rx=".6" fill="#4f8ef7"/><rect x="7" y="9.3" width="4" height="1.2" rx=".6" fill="#4f8ef7"/></svg>
+              </span>
+              LSB Steganography
+            </div>
+            <div class="stat-pill">
+              <span class="stat-pill-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2C4.7 2 2 4.7 2 8s2.7 6 6 6 6-2.7 6-6-2.7-6-6-6z" stroke="#4f8ef7" stroke-width="1.2" fill="#4f8ef7" opacity=".15"/><path d="M5 8h6M8 5v6" stroke="#4f8ef7" stroke-width="1.4" stroke-linecap="round"/><path d="M3.5 4.5L2 3m10 8.5l1.5 1.5M12.5 4.5L14 3m-10 8.5L2.5 13" stroke="#4f8ef7" stroke-width="1.2" stroke-linecap="round" opacity=".5"/></svg>
+              </span>
+              100% In-Browser
+            </div>
+            <div class="stat-pill">
+              <span class="stat-pill-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#4f8ef7" stroke-width="1.2" fill="#4f8ef7" opacity=".2" stroke-linejoin="round"/></svg>
+              </span>
+              PBKDF2 Key Derivation
+            </div>
+          </div>
+        </section>
 
-            <div class="panel" id="hideStep2">
-              <h3>Step 2: Choose Secret Type</h3>
-              <div class="toggle-row">
-                <label class="toggle-pill">
-                  <input type="radio" name="payloadMode" value="text" checked />
-                  <span>Text</span>
-                </label>
-                <label class="toggle-pill">
-                  <input type="radio" name="payloadMode" value="file" />
-                  <span>File</span>
-                </label>
-              </div>
+        <!-- FEATURE CARDS -->
+        <section class="features-section">
+          <div class="section-label" id="section-features">
+            <span class="section-label-line"></span>
+            <span class="section-label-text">FEATURES</span>
+            <span class="section-label-line"></span>
+          </div>
 
-              <div id="textWrap" class="fade-in">
-                <textarea id="secretText" placeholder="Type your secret message"></textarea>
-              </div>
+          <div class="row g-4" id="action-cards">
 
-              <div id="fileWrap" class="hidden fade-in">
-                <div class="inline-actions">
-                  <button id="pickSecretFileBtn" type="button" class="ghost-btn">Choose File</button>
-                  <span id="secretFileNote" class="inline-note">No file selected</span>
+            <!-- Hide Message -->
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="feature-card feature-card--blue" id="card-hide" onclick="navigateTo('hide')" tabindex="0">
+                <div class="fc-glow fc-glow--blue"></div>
+                <div class="fc-icon-wrap fc-icon-wrap--blue">
+                  <svg class="fc-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="18" width="20" height="16" rx="3" fill="rgba(79,142,247,0.2)" stroke="#4f8ef7" stroke-width="1.5"/>
+                    <path d="M14 18v-4a6 6 0 0112 0v4" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="20" cy="26" r="2.5" fill="#4f8ef7"/>
+                    <path d="M20 28.5v2.5" stroke="#4f8ef7" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- embed dots -->
+                    <circle cx="8" cy="10" r="1.2" fill="#4f8ef7" opacity=".4"/>
+                    <circle cx="12" cy="7" r="1.2" fill="#4f8ef7" opacity=".3"/>
+                    <circle cx="16" cy="10" r="1.2" fill="#4f8ef7" opacity=".5"/>
+                    <circle cx="24" cy="10" r="1.2" fill="#4f8ef7" opacity=".3"/>
+                    <circle cx="28" cy="7" r="1.2" fill="#4f8ef7" opacity=".4"/>
+                    <circle cx="32" cy="10" r="1.2" fill="#4f8ef7" opacity=".35"/>
+                  </svg>
                 </div>
-                <input id="secretFile" type="file" class="hidden" />
+                <h3 class="fc-title">Hide Message</h3>
+                <p class="fc-desc">Embed any text or file inside a PNG image using LSB steganography. Your secret is encrypted with AES-256-GCM before embedding — completely invisible to the naked eye.</p>
+                <ul class="fc-bullets">
+                  <li><i class="bi bi-check2"></i> Supports text and file payloads</li>
+                  <li><i class="bi bi-check2"></i> AES-256-GCM password encryption</li>
+                  <li><i class="bi bi-check2"></i> Live capacity indicator</li>
+                  <li><i class="bi bi-check2"></i> Output always lossless PNG</li>
+                </ul>
+                <div class="fc-cta">
+                  Open Hide Tool <i class="bi bi-arrow-right ms-1"></i>
+                </div>
               </div>
             </div>
 
-            <div class="panel" id="hideStep3">
-              <h3>Step 3: Enter Password</h3>
-              <div class="password-wrap">
-                <input id="encodePassword" type="password" placeholder="Encryption password" />
-                <button id="toggleEncodePassword" type="button" class="ghost-btn">Show</button>
+            <!-- Extract Message -->
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="feature-card feature-card--green" id="card-extract" onclick="navigateTo('extract')" tabindex="0">
+                <div class="fc-glow fc-glow--green"></div>
+                <div class="fc-icon-wrap fc-icon-wrap--green">
+                  <svg class="fc-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="18" width="20" height="16" rx="3" fill="rgba(34,214,113,0.15)" stroke="#22d671" stroke-width="1.5"/>
+                    <path d="M14 18v-4a6 6 0 0112 0v4" stroke="#22d671" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 2"/>
+                    <circle cx="20" cy="26" r="2.5" fill="#22d671" opacity=".8"/>
+                    <!-- unlocked shackle open -->
+                    <path d="M26 18v-2" stroke="#22d671" stroke-width="1.8" stroke-linecap="round"/>
+                    <!-- arrow up from lock = extract -->
+                    <path d="M20 12v-5M17.5 9.5L20 7l2.5 2.5" stroke="#22d671" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h3 class="fc-title">Extract Message</h3>
+                <p class="fc-desc">Recover hidden content from a stego PNG or BMP image. Enter the decryption password to unlock and reveal the embedded text message or reconstruct the original file.</p>
+                <ul class="fc-bullets">
+                  <li><i class="bi bi-check2"></i> Decrypts AES-256-GCM payload</li>
+                  <li><i class="bi bi-check2"></i> Auto-detects text vs file type</li>
+                  <li><i class="bi bi-check2"></i> One-click copy or download</li>
+                  <li><i class="bi bi-check2"></i> JPEG lossy-compression warning</li>
+                </ul>
+                <div class="fc-cta fc-cta--green">
+                  Open Extract Tool <i class="bi bi-arrow-right ms-1"></i>
+                </div>
               </div>
-              <div class="strength-track"><span id="encodeStrengthBar"></span></div>
-              <small id="encodeStrengthText" class="hint">Password strength: weak</small>
             </div>
 
-            <div class="panel" id="hideStep4">
-              <h3>Step 4: Action</h3>
-              <div class="inline-actions wrap">
-                <button id="embedBtn" type="button" class="primary-btn" disabled>Hide Message</button>
-                <button id="saveStegoBtn" type="button" class="success-btn hidden">Download Stego Image</button>
+            <!-- Secure Share -->
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="feature-card feature-card--amber" id="card-share" onclick="navigateTo('share')" tabindex="0">
+                <div class="fc-glow fc-glow--amber"></div>
+                <div class="fc-icon-wrap fc-icon-wrap--amber">
+                  <svg class="fc-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- envelope body -->
+                    <rect x="6" y="12" width="28" height="20" rx="3" fill="rgba(245,166,35,0.15)" stroke="#f5a623" stroke-width="1.5"/>
+                    <!-- envelope V flap -->
+                    <path d="M6 15l14 10 14-10" stroke="#f5a623" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- lock on top right -->
+                    <rect x="26" y="6" width="9" height="8" rx="2" fill="rgba(245,166,35,0.2)" stroke="#f5a623" stroke-width="1.2"/>
+                    <path d="M28.5 10V8.5a2 2 0 014 0V10" stroke="#f5a623" stroke-width="1.2" stroke-linecap="round"/>
+                    <circle cx="30.5" cy="11" r="1" fill="#f5a623"/>
+                  </svg>
+                </div>
+                <h3 class="fc-title">Secure Share</h3>
+                <p class="fc-desc">Send and receive stego images through named mailboxes on a local Java API server. Collaborate securely with your team — messages are protected end-to-end with a shared passphrase.</p>
+                <ul class="fc-bullets">
+                  <li><i class="bi bi-check2"></i> Named mailbox system</li>
+                  <li><i class="bi bi-check2"></i> Passphrase-protected inbox</li>
+                  <li><i class="bi bi-check2"></i> Send, receive, delete messages</li>
+                  <li><i class="bi bi-check2"></i> Auto-loads into Extract tab</li>
+                </ul>
+                <div class="fc-cta fc-cta--amber">
+                  Open Share Tool <i class="bi bi-arrow-right ms-1"></i>
+                </div>
               </div>
-              <div id="embedLoading" class="loading hidden"><span class="spinner"></span>Hiding message...</div>
-              <div id="embedSuccess" class="success-state hidden">
-                <span class="checkmark">✓</span>
-                <strong>Message successfully hidden</strong>
+            </div>
+
+            <!-- Stego Analyzer -->
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="feature-card feature-card--purple" id="card-analyze" onclick="navigateTo('analyze')" tabindex="0">
+                <div class="fc-glow fc-glow--purple"></div>
+                <div class="fc-icon-wrap fc-icon-wrap--purple">
+                  <svg class="fc-icon-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- bar chart -->
+                    <rect x="7" y="24" width="5" height="9" rx="1.5" fill="rgba(168,85,247,0.3)" stroke="#a855f7" stroke-width="1.2"/>
+                    <rect x="15" y="18" width="5" height="15" rx="1.5" fill="rgba(168,85,247,0.3)" stroke="#a855f7" stroke-width="1.2"/>
+                    <rect x="23" y="13" width="5" height="20" rx="1.5" fill="rgba(168,85,247,0.5)" stroke="#a855f7" stroke-width="1.2"/>
+                    <rect x="31" y="20" width="5" height="13" rx="1.5" fill="rgba(168,85,247,0.3)" stroke="#a855f7" stroke-width="1.2"/>
+                    <!-- magnifier -->
+                    <circle cx="28" cy="11" r="5.5" stroke="#a855f7" stroke-width="1.5" fill="rgba(168,85,247,0.1)"/>
+                    <path d="M32 15l3.5 3.5" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <h3 class="fc-title">Stego Analyzer</h3>
+                <p class="fc-desc">Run statistical analysis on any image to detect steganographic modifications. Measures LSB distribution, chi-square anomalies, entropy, and bit transition patterns with a confidence score.</p>
+                <ul class="fc-bullets">
+                  <li><i class="bi bi-check2"></i> LSB ratio per RGB channel</li>
+                  <li><i class="bi bi-check2"></i> Chi-square statistical test</li>
+                  <li><i class="bi bi-check2"></i> Entropy &amp; transition analysis</li>
+                  <li><i class="bi bi-check2"></i> Confidence verdict score</li>
+                </ul>
+                <div class="fc-cta fc-cta--purple">
+                  Open Analyzer <i class="bi bi-arrow-right ms-1"></i>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section class="how-section" id="how-section">
+          <div class="section-label">
+            <span class="section-label-line"></span>
+            <span class="section-label-text">HOW IT WORKS</span>
+            <span class="section-label-line"></span>
+          </div>
+          <div class="row g-4 how-steps" id="how-steps">
+            <div class="col-12 col-md-4">
+              <div class="how-step">
+                <div class="how-step-num">01</div>
+                <div class="how-step-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="4" y="6" width="24" height="20" rx="3" fill="rgba(79,142,247,0.12)" stroke="#4f8ef7" stroke-width="1.4"/>
+                    <path d="M10 12h12M10 16h8M10 20h5" stroke="#4f8ef7" stroke-width="1.4" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <h4 class="how-step-title">Prepare Your Secret</h4>
+                <p class="how-step-desc">Write your secret text or select any file you want to hide. Choose a strong password — this drives PBKDF2 key derivation for AES-256-GCM encryption before any pixel is touched.</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="how-step how-step--center">
+                <div class="how-step-num">02</div>
+                <div class="how-step-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="3" y="5" width="26" height="22" rx="3" fill="rgba(79,142,247,0.1)" stroke="#4f8ef7" stroke-width="1.4"/>
+                    <circle cx="11" cy="13" r="3" stroke="#4f8ef7" stroke-width="1.3"/>
+                    <path d="M3 25l7-7 5 4 4-4 10 7" stroke="#4f8ef7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- pixel dots overlay -->
+                    <circle cx="23" cy="9" r="1.2" fill="#4f8ef7" opacity=".8"/>
+                    <circle cx="26" cy="9" r="1.2" fill="#4f8ef7" opacity=".5"/>
+                    <circle cx="23" cy="12" r="1.2" fill="#4f8ef7" opacity=".6"/>
+                    <circle cx="26" cy="12" r="1.2" fill="#4f8ef7" opacity=".9"/>
+                  </svg>
+                </div>
+                <h4 class="how-step-title">Embed in an Image</h4>
+                <p class="how-step-desc">Upload any PNG or BMP as a carrier. The encrypted payload is written into the Least Significant Bits of each pixel's RGB channels — changes imperceptible to humans, but retrievable by algorithm.</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="how-step">
+                <div class="how-step-num">03</div>
+                <div class="how-step-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 4l10 5v8c0 6-4 10-10 11C10 27 6 23 6 17V9l10-5z" fill="rgba(34,214,113,0.1)" stroke="#22d671" stroke-width="1.4" stroke-linejoin="round"/>
+                    <path d="M11 16l3 3 6-6" stroke="#22d671" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h4 class="how-step-title">Download &amp; Share</h4>
+                <p class="how-step-desc">Download the stego PNG — it looks identical to the original. Share it via the Secure Share mailbox or any channel. The recipient runs Extract with the same password to recover the secret.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TECH SPEC BAR -->
+        <section class="tech-bar" id="tech-bar">
+          <div class="row g-3">
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">AES-256</div>
+                <div class="tech-item-lbl">Encryption</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">GCM</div>
+                <div class="tech-item-lbl">Mode</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">65,536</div>
+                <div class="tech-item-lbl">PBKDF2 Iterations</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">12B</div>
+                <div class="tech-item-lbl">AES IV Length</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">LSB</div>
+                <div class="tech-item-lbl">Embed Method</div>
+              </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+              <div class="tech-item">
+                <div class="tech-item-val">PNG</div>
+                <div class="tech-item-lbl">Output Format</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /dashboard-scroll -->
+    </div>
+
+    <!-- ══════════════════════ VIEW: HIDE ══════════════════════ -->
+    <div class="view-panel" id="view-hide">
+      <div class="container-fluid px-4 py-4">
+        <div class="view-header mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="view-icon-wrap view-icon-wrap--blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="5" y="11" width="14" height="11" rx="2" stroke="#4f8ef7" stroke-width="1.6" fill="rgba(79,142,247,0.15)"/>
+                <path d="M8 11V7a4 4 0 018 0v4" stroke="#4f8ef7" stroke-width="1.6" stroke-linecap="round"/>
+                <circle cx="12" cy="16" r="1.5" fill="#4f8ef7"/>
+                <path d="M12 17.5v1.5" stroke="#4f8ef7" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="view-title">Hide Message</h2>
+              <p class="view-desc">Embed AES-256-GCM encrypted content into a carrier image using LSB steganography</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stepper -->
+        <div class="stepper d-flex align-items-center mb-4 flex-wrap gap-2" id="hide-stepper">
+          <div class="stepper-item active" id="step-hide-1">
+            <div class="stepper-circle">1</div>
+            <span class="stepper-label">Upload Image</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" id="step-hide-2">
+            <div class="stepper-circle">2</div>
+            <span class="stepper-label">Secret Type</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" id="step-hide-3">
+            <div class="stepper-circle">3</div>
+            <span class="stepper-label">Password</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" id="step-hide-4">
+            <div class="stepper-circle">4</div>
+            <span class="stepper-label">Hide</span>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <!-- Step 1 -->
+          <div class="step-panel mb-4" id="hide-step-panel-1">
+            <div class="step-label-row">
+              <span class="step-number-badge">1</span>
+              <span class="step-title">Upload Carrier Image</span>
+            </div>
+            <div class="dropzone" id="hide-dropzone"
+              onclick="document.getElementById('hide-carrier-input').click()"
+              ondragover="event.preventDefault(); this.classList.add('dropzone-hover')"
+              ondragleave="this.classList.remove('dropzone-hover')"
+              ondrop="handleHideCarrierDrop(event)">
+              <div class="dropzone-inner">
+                <div class="dropzone-svg-icon">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <rect x="4" y="8" width="32" height="24" rx="4" fill="rgba(79,142,247,0.1)" stroke="#4f8ef7" stroke-width="1.4" stroke-dasharray="4 2"/>
+                    <path d="M20 25V16m-4 4l4-4 4 4" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 30h14" stroke="#4f8ef7" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+                  </svg>
+                </div>
+                <p class="dropzone-text">Drag &amp; drop an image here, or <span class="dropzone-link">click to browse</span></p>
+                <p class="dropzone-hint">Accepts PNG, BMP, JPEG</p>
+              </div>
+            </div>
+            <input type="file" id="hide-carrier-input" accept="image/png,image/bmp,image/jpeg" style="display:none" onchange="handleHideCarrierSelect(this)">
+            <div id="hide-preview-area" style="display:none;" class="mt-3">
+              <img id="hide-preview-img" class="img-preview" alt="Carrier preview" />
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <span class="info-badge"><i class="bi bi-aspect-ratio me-1"></i> SIZE: <span id="hide-img-size">—</span></span>
+                <span class="info-badge"><i class="bi bi-hdd me-1"></i> CAPACITY: <span id="hide-img-cap">—</span></span>
+                <span class="info-badge"><i class="bi bi-file-earmark me-1"></i> REQUIRED: <span id="hide-img-req">—</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step-panel mb-4" id="hide-step-panel-2">
+            <div class="step-label-row">
+              <span class="step-number-badge">2</span>
+              <span class="step-title">Choose Secret Type</span>
+            </div>
+            <div class="toggle-pills mb-3">
+              <button class="toggle-pill active" id="toggle-text" onclick="setSecretMode('text')">
+                <i class="bi bi-type me-1"></i> Text
+              </button>
+              <button class="toggle-pill" id="toggle-file" onclick="setSecretMode('file')">
+                <i class="bi bi-file-earmark me-1"></i> File
+              </button>
+            </div>
+            <div id="secret-text-area">
+              <textarea id="hide-secret-text" class="stegos-textarea" rows="5"
+                placeholder="Type your secret message here…"
+                oninput="updateRequiredBytes()"></textarea>
+              <div class="text-end mt-1">
+                <small class="text-muted"><span id="text-char-count">0</span> characters</small>
+              </div>
+            </div>
+            <div id="secret-file-area" style="display:none;">
+              <div class="file-pick-row">
+                <button class="btn-file-pick" onclick="document.getElementById('hide-secret-file').click()">
+                  <i class="bi bi-file-earmark-arrow-up me-1"></i> Choose File
+                </button>
+                <span class="file-chip" id="secret-file-chip">No file selected</span>
+              </div>
+              <input type="file" id="hide-secret-file" style="display:none" onchange="handleSecretFileSelect(this)">
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step-panel mb-4" id="hide-step-panel-3">
+            <div class="step-label-row">
+              <span class="step-number-badge">3</span>
+              <span class="step-title">Encryption Password</span>
+            </div>
+            <div class="input-password-wrap">
+              <input type="password" id="hide-password" class="stegos-input" placeholder="Enter a strong password…" oninput="updatePasswordStrength('hide')">
+              <button class="btn-toggle-pw" onclick="togglePasswordVisibility('hide-password')">
+                <i class="bi bi-eye" id="hide-pw-eye"></i>
+              </button>
+            </div>
+            <div class="strength-bar-wrap mt-2">
+              <div class="strength-bar-track">
+                <div class="strength-bar-fill" id="hide-strength-bar" style="width:0%;"></div>
+              </div>
+              <span class="strength-label" id="hide-strength-label"></span>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="step-panel" id="hide-step-panel-4">
+            <div class="step-label-row">
+              <span class="step-number-badge">4</span>
+              <span class="step-title">Hide Message</span>
+            </div>
+            <button class="btn-primary-glow w-100" id="btn-hide-action" onclick="handleEmbed()" disabled>
+              <span class="btn-text"><i class="bi bi-eye-slash-fill me-2"></i> Hide Message</span>
+              <span class="btn-spinner d-none"><span class="spinner-border spinner-border-sm me-2"></span> Processing…</span>
+            </button>
+            <div id="hide-success-area" style="display:none;" class="mt-3">
+              <div class="success-banner" id="hide-success-banner">
+                <i class="bi bi-check-circle-fill me-2"></i> Message successfully hidden in image!
+              </div>
+              <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn-success-glow" onclick="downloadStegoOutput()">
+                  <i class="bi bi-download me-1"></i> Download Stego PNG
+                </button>
+                <button class="btn-ghost-action" onclick="loadStegoIntoExtract()">
+                  <i class="bi bi-arrow-right-circle me-1"></i> Load into Extract Tab
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <section id="extractView" class="view">
-        <div class="module-card fade-in">
-          <div class="module-head">
-            <h2>Extract Message</h2>
-          </div>
-
-          <ol class="stepper" id="extractStepper">
-            <li data-step="1"><span>1</span>Upload Stego Image</li>
-            <li data-step="2"><span>2</span>Enter Password</li>
-            <li data-step="3"><span>3</span>Extract</li>
-          </ol>
-
-          <div class="module-body">
-            <div class="panel">
-              <h3>Step 1: Upload Stego Image</h3>
-              <div class="inline-actions wrap">
-                <button id="pickDecodeImageBtn" type="button" class="ghost-btn">Choose Image</button>
-                <span id="decodeImageNote" class="inline-note">No image selected</span>
-              </div>
-              <input id="decodeImageFile" type="file" class="hidden" accept="image/png,image/bmp" />
+    <!-- ══════════════════════ VIEW: EXTRACT ══════════════════════ -->
+    <div class="view-panel" id="view-extract">
+      <div class="container-fluid px-4 py-4">
+        <div class="view-header mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="view-icon-wrap view-icon-wrap--green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="5" y="11" width="14" height="11" rx="2" stroke="#22d671" stroke-width="1.6" fill="rgba(34,214,113,0.12)"/>
+                <path d="M8 11V7a4 4 0 018 0v4" stroke="#22d671" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 1.5"/>
+                <path d="M12 7V3M10 5l2-2 2 2" stroke="#22d671" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-
-            <div class="panel">
-              <h3>Step 2: Enter Password</h3>
-              <div class="password-wrap">
-                <input id="decodePassword" type="password" placeholder="Decryption password" />
-                <button id="toggleDecodePassword" type="button" class="ghost-btn">Show</button>
-              </div>
-            </div>
-
-            <div class="panel">
-              <h3>Step 3: Extract</h3>
-              <div class="inline-actions wrap">
-                <button id="extractBtn" type="button" class="primary-btn" disabled>Extract Message</button>
-                <a id="decodedFileLink" class="success-btn hidden" download>Download recovered file</a>
-                <button id="copyResultBtn" type="button" class="ghost-btn hidden">Copy Text</button>
-              </div>
-              <div id="extractLoading" class="loading hidden"><span class="spinner"></span>Extracting...</div>
-              <div id="decodeState" class="state-pill">Awaiting input</div>
-              <pre id="decodeResult" class="result-box">No output yet</pre>
+            <div>
+              <h2 class="view-title">Extract Message</h2>
+              <p class="view-desc">Recover hidden content from a steganographic PNG or BMP image</p>
             </div>
           </div>
         </div>
-      </section>
 
-      <section id="shareView" class="view">
-        <div class="module-card fade-in">
-          <div class="module-head">
-            <h2>Secure Share</h2>
+        <!-- Stepper -->
+        <div class="stepper d-flex align-items-center mb-4 flex-wrap gap-2" id="extract-stepper">
+          <div class="stepper-item active" id="step-extract-1">
+            <div class="stepper-circle">1</div>
+            <span class="stepper-label">Upload Stego Image</span>
           </div>
-
-          <div class="module-body">
-            <div class="grid-2">
-              <label>Server URL
-                <input id="serverUrl" value="http://localhost:8088" />
-              </label>
-              <label>Mailbox ID
-                <input id="mailboxId" placeholder="example: team_alpha" />
-              </label>
-              <label>Passphrase
-                <input id="mailboxPassphrase" type="password" placeholder="Mailbox secret" />
-              </label>
-              <label>Sender Name
-                <input id="senderName" placeholder="example: Alice" />
-              </label>
-            </div>
-
-            <div class="inline-actions wrap">
-              <button id="registerMailboxBtn" type="button" class="ghost-btn">Register</button>
-              <button id="sendStegoBtn" type="button" class="primary-btn">Send</button>
-              <button id="refreshInboxBtn" type="button" class="ghost-btn">Refresh Inbox</button>
-            </div>
-
-            <div class="inbox-list" id="inboxBody">
-              <div class="empty-row">No messages loaded</div>
-            </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" id="step-extract-2">
+            <div class="stepper-circle">2</div>
+            <span class="stepper-label">Enter Password</span>
+          </div>
+          <div class="stepper-connector"></div>
+          <div class="stepper-item" id="step-extract-3">
+            <div class="stepper-circle">3</div>
+            <span class="stepper-label">Extract</span>
           </div>
         </div>
-      </section>
 
-      <section id="analyzeView" class="view">
-        <div class="module-card fade-in">
-          <div class="module-head">
-            <h2>Stego Analyzer</h2>
+        <div class="card-panel">
+          <div class="step-panel mb-4">
+            <div class="step-label-row">
+              <span class="step-number-badge">1</span>
+              <span class="step-title">Upload Stego Image</span>
+            </div>
+            <div class="file-pick-row">
+              <button class="btn-file-pick" onclick="document.getElementById('extract-stego-input').click()">
+                <i class="bi bi-file-earmark-image me-1"></i> Choose PNG/BMP
+              </button>
+              <span class="file-chip" id="extract-file-chip">No file selected</span>
+            </div>
+            <input type="file" id="extract-stego-input" accept="image/png,image/bmp,image/jpeg" style="display:none" onchange="handleExtractImageSelect(this)">
+            <div id="extract-jpeg-warn" class="warning-banner mt-2" style="display:none;">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              JPEG is lossy — hidden bits may be destroyed. Use PNG or BMP output only.
+            </div>
           </div>
 
-          <div class="module-body">
-            <div class="panel">
-              <h3>Upload Image</h3>
-              <div class="inline-actions wrap">
-                <button id="pickAnalyzeImageBtn" type="button" class="ghost-btn">Choose Image</button>
-                <span id="analyzeImageNote" class="inline-note">No image selected</span>
+          <div class="step-panel mb-4">
+            <div class="step-label-row">
+              <span class="step-number-badge">2</span>
+              <span class="step-title">Decryption Password</span>
+            </div>
+            <div class="input-password-wrap">
+              <input type="password" id="extract-password" class="stegos-input" placeholder="Enter decryption password…" oninput="checkExtractReady()">
+              <button class="btn-toggle-pw" onclick="togglePasswordVisibility('extract-password')">
+                <i class="bi bi-eye" id="extract-pw-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="step-panel">
+            <div class="step-label-row">
+              <span class="step-number-badge">3</span>
+              <span class="step-title">Extract</span>
+            </div>
+            <button class="btn-primary-glow w-100" id="btn-extract-action" onclick="handleExtract()" disabled>
+              <span class="btn-text"><i class="bi bi-unlock-fill me-2"></i> Extract Message</span>
+              <span class="btn-spinner d-none"><span class="spinner-border spinner-border-sm me-2"></span> Decrypting…</span>
+            </button>
+            <div class="mt-3">
+              <div class="status-pill-wrap">
+                <span class="status-pill" id="extract-status-pill">
+                  <i class="bi bi-hourglass me-1"></i> Awaiting input
+                </span>
               </div>
-              <input id="analyzeImageFile" type="file" class="hidden" accept="image/png,image/bmp,image/jpeg" />
-              <button id="analyzeBtn" type="button" class="primary-btn" disabled>Analyze</button>
-              <div id="analyzeLoading" class="loading hidden"><span class="spinner"></span>Analyzing...</div>
-            </div>
-
-            <div class="metrics-grid">
-              <article class="metric-card verdict" id="verdictCard">
-                <small>Verdict</small>
-                <strong id="metricVerdict">-</strong>
-              </article>
-              <article class="metric-card">
-                <small>Confidence</small>
-                <strong id="metricConfidence">-</strong>
-                <div class="progress"><span id="confidenceBar"></span></div>
-              </article>
-              <article class="metric-card">
-                <small>LSB Ratio (R/G/B)</small>
-                <strong id="metricLsb">-</strong>
-              </article>
-              <article class="metric-card">
-                <small>Chi (R/G/B)</small>
-                <strong id="metricChi">-</strong>
-              </article>
-              <article class="metric-card">
-                <small>Entropy</small>
-                <strong id="metricEntropy">-</strong>
-              </article>
-              <article class="metric-card">
-                <small>Transitions</small>
-                <strong id="metricTransition">-</strong>
-              </article>
+              <div id="extract-result-area" style="display:none;" class="mt-3">
+                <div id="extract-text-result" style="display:none;">
+                  <pre class="result-pre" id="extract-result-text"></pre>
+                  <button class="btn-success-glow mt-2" onclick="copyExtractedText()">
+                    <i class="bi bi-clipboard me-1"></i> Copy Text
+                  </button>
+                </div>
+                <div id="extract-file-result" style="display:none;">
+                  <div class="file-info-card" id="extract-file-info"></div>
+                  <button class="btn-success-glow mt-2" id="btn-download-extracted">
+                    <i class="bi bi-download me-1"></i> Download Recovered File
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
 
-    <footer class="status-bar" id="statusBar">
-      <span id="statusDot"></span>
-      <span id="statusText">Ready.</span>
-    </footer>
-  </div>
+    <!-- ══════════════════════ VIEW: SHARE ══════════════════════ -->
+    <div class="view-panel" id="view-share">
+      <div class="container-fluid px-4 py-4">
+        <div class="view-header mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="view-icon-wrap view-icon-wrap--amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="7" width="20" height="14" rx="2" stroke="#f5a623" stroke-width="1.6" fill="rgba(245,166,35,0.12)"/>
+                <path d="M2 11l10 7 10-7" stroke="#f5a623" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="15" y="2" width="7" height="6" rx="1.5" fill="rgba(245,166,35,0.2)" stroke="#f5a623" stroke-width="1.2"/>
+                <path d="M16.5 5.5V4a2 2 0 014 0v1.5" stroke="#f5a623" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="view-title">Secure Share</h2>
+              <p class="view-desc">Send and receive stego images via named mailboxes on a local Java API server</p>
+            </div>
+          </div>
+        </div>
 
-  <canvas id="workCanvas" class="hidden"></canvas>
+        <div class="card-panel mb-4">
+          <div class="panel-section-title mb-3"><i class="bi bi-plug-fill me-2"></i> Connection</div>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="stegos-label">Server URL</label>
+              <input type="text" id="share-server-url" class="stegos-input" value="http://localhost:8088">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="stegos-label">Mailbox ID</label>
+              <input type="text" id="share-mailbox-id" class="stegos-input" placeholder="e.g. team_alpha">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="stegos-label">Passphrase <small class="text-muted">(mailbox auth — separate from encryption password)</small></label>
+              <div class="input-password-wrap">
+                <input type="password" id="share-passphrase" class="stegos-input" placeholder="Mailbox passphrase…">
+                <button class="btn-toggle-pw" onclick="togglePasswordVisibility('share-passphrase')">
+                  <i class="bi bi-eye" id="share-pw-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="stegos-label">Sender Name <small class="text-muted">(optional)</small></label>
+              <input type="text" id="share-sender" class="stegos-input" placeholder="e.g. Alice">
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button class="btn-ghost-action" onclick="shareRegisterMailbox()"><i class="bi bi-mailbox me-1"></i> Register Mailbox</button>
+            <button class="btn-primary-glow" onclick="shareSendImage()"><i class="bi bi-send me-1"></i> Send Stego Image</button>
+            <button class="btn-ghost-action" onclick="shareRefreshInbox()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh Inbox</button>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="panel-section-title mb-0"><i class="bi bi-inbox me-2"></i> Inbox</div>
+            <span class="badge-count" id="inbox-count-badge">0 messages</span>
+          </div>
+          <div id="inbox-empty" class="inbox-empty">
+            <div class="inbox-empty-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="5" y="10" width="30" height="22" rx="3" fill="rgba(122,147,184,0.08)" stroke="rgba(122,147,184,0.25)" stroke-width="1.4"/>
+                <path d="M5 16l15 11 15-11" stroke="rgba(122,147,184,0.3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="mt-2 text-muted">No messages in mailbox</p>
+          </div>
+          <div id="inbox-list" class="inbox-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════ VIEW: ANALYZE ══════════════════════ -->
+    <div class="view-panel" id="view-analyze">
+      <div class="container-fluid px-4 py-4">
+        <div class="view-header mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="view-icon-wrap view-icon-wrap--purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="14" width="4" height="7" rx="1" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1.4"/>
+                <rect x="10" y="10" width="4" height="11" rx="1" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1.4"/>
+                <rect x="17" y="6" width="4" height="15" rx="1" fill="rgba(168,85,247,0.3)" stroke="#a855f7" stroke-width="1.4"/>
+                <circle cx="17" cy="6" r="3" stroke="#a855f7" stroke-width="1.3" fill="rgba(168,85,247,0.1)"/>
+                <path d="M19.5 8.5L22 11" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="view-title">Stego Analyzer</h2>
+              <p class="view-desc">Statistical analysis to detect hidden steganographic data in any image</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-panel mb-4">
+          <div class="step-label-row mb-3">
+            <span class="step-title">Upload Image for Analysis</span>
+          </div>
+          <div class="file-pick-row">
+            <button class="btn-file-pick" onclick="document.getElementById('analyze-input').click()">
+              <i class="bi bi-file-earmark-bar-graph me-1"></i> Choose Image
+            </button>
+            <span class="file-chip" id="analyze-file-chip">No file selected</span>
+          </div>
+          <input type="file" id="analyze-input" accept="image/png,image/bmp,image/jpeg" style="display:none" onchange="handleAnalyzeImageSelect(this)">
+          <button class="btn-primary-glow mt-3" id="btn-analyze-action" onclick="handleAnalyze()" disabled>
+            <span class="btn-text"><i class="bi bi-bar-chart-line-fill me-2"></i> Analyze Image</span>
+            <span class="btn-spinner d-none"><span class="spinner-border spinner-border-sm me-2"></span> Analyzing…</span>
+          </button>
+        </div>
+
+        <div id="analyze-results" style="display:none;">
+          <div class="row g-4" id="metric-cards-row">
+            <div class="col-12">
+              <div class="metric-card metric-verdict" id="metric-verdict-card">
+                <div class="metric-label">VERDICT</div>
+                <div class="metric-value" id="metric-verdict-val">—</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="metric-card" id="metric-confidence-card">
+                <div class="metric-label">CONFIDENCE</div>
+                <div class="metric-value" id="metric-confidence-val">—</div>
+                <div class="metric-bar-track mt-2"><div class="metric-bar-fill" id="metric-confidence-bar" style="width:0%"></div></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="metric-card">
+                <div class="metric-label">LSB RATIO (R/G/B)</div>
+                <div class="metric-value metric-value-sm" id="metric-lsb-val">—</div>
+                <div class="metric-sub">Near 0.5 suggests manipulation</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="metric-card">
+                <div class="metric-label">CHI INDICATOR (R/G/B)</div>
+                <div class="metric-value metric-value-sm" id="metric-chi-val">—</div>
+                <div class="metric-sub">High values = statistical anomaly</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="metric-card">
+                <div class="metric-label">ENTROPY</div>
+                <div class="metric-value" id="metric-entropy-val">—</div>
+                <div class="metric-sub">Near 1.0 = high LSB randomness</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-8">
+              <div class="metric-card">
+                <div class="metric-label">TRANSITIONS / HEADER</div>
+                <div class="metric-value metric-value-sm" id="metric-trans-val">—</div>
+                <div class="metric-sub">Plausible stego header detection</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════ FOOTER STATUS BAR ═══════ -->
+  <footer class="stegos-footer" id="app-footer">
+    <div class="container-fluid px-4">
+      <div class="d-flex align-items-center gap-2">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Ready — All operations run locally in your browser</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- ngrok public URL config (auto-generated by server.py) -->
+  <script src="ngrok_config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
