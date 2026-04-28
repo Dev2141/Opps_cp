@@ -1,328 +1,182 @@
-    # StegOS Secure Suite
+# StegOS Secure Suite
 
-    StegOS Secure Suite is a privacy-first steganography project that helps users hide sensitive information inside normal-looking images, recover it securely, share stego images through authenticated mailboxes, and analyze images for possible hidden content.
+StegOS Secure Suite is a privacy-first steganography system that encrypts data, hides it inside images, shares stego images through authenticated mailboxes, and analyzes images for hidden-content indicators. The guiding idea is simple: encrypt first, hide second, share safely, and verify with analysis.
 
-    This project combines cryptography, image processing, and a practical sharing workflow. It is designed for learning, demonstrations, and secure local experimentation.
+## Table of contents
 
-    ## 1. Project Objectives
+- [Project summary](#project-summary)
+- [System overview](#system-overview)
+- [Feature summary table](#feature-summary-table)
+- [Feature deep dive](#feature-deep-dive)
+- [Supporting capabilities](#supporting-capabilities)
+- [Algorithms reference](#algorithms-reference)
+- [Java OOP concepts mapping](#java-oop-concepts-mapping)
+- [Repository map](#repository-map)
+- [Run locally](#run-locally)
+- [Practical notes](#practical-notes)
 
-    The core objectives of this project are:
+## Project summary
 
-    1. Protect secret data before embedding.
-    The project encrypts data first, then hides it inside an image. This means hidden data is not only concealed, but also cryptographically protected.
+StegOS is built to demonstrate secure communication through steganography and modern cryptography, while remaining practical for demos and academic use.
 
-    2. Support both messages and files.
-    The project is not limited to plain text. It supports hiding full files with metadata so they can be reconstructed correctly during extraction.
+- It hides both text and full files inside images.
+- It encrypts payloads with AES-256-GCM using PBKDF2-derived keys.
+- It provides mailbox-based sharing with server-side authentication.
+- It includes a statistical analyzer to detect likely stego content.
 
-    3. Keep operations simple for users.
-    The interface guides users through hide, extract, share, and analyze workflows in a practical way.
+## System overview
 
-    4. Provide an end-to-end secure sharing model.
-    Users can register inbox-style mailboxes, send stego images, retrieve them, and delete them, all behind mailbox authentication.
+### Components
 
-    5. Include detection and analysis capability.
-    The analyzer estimates whether an image likely contains hidden content using statistical indicators.
+| Layer | Responsibilities | Key files |
+| --- | --- | --- |
+| Browser UI | UX, encryption, stego embed/extract, analysis, and API calls | [index.html](index.html), [styles.css](styles.css), [app.js](app.js) |
+| Java core | Crypto utilities, payload handling, stego engine, analyzer | [EncryptionService.java](EncryptionService.java), [PayloadEnvelope.java](PayloadEnvelope.java), [SteganographyEngine.java](SteganographyEngine.java), [StegoAnalyzer.java](StegoAnalyzer.java), [ImageHandler.java](ImageHandler.java) |
+| Share API | Mailbox endpoints and storage logic | [SecureShareServer.java](SecureShareServer.java), [shared](shared) |
+| Launcher | Local server startup and proxy | [server.py](server.py) |
 
-    6. Work locally without cloud dependency by default.
-    Core encode/decode/analyze functions run in the browser. Secure share can run on a local Java server, with optional public access via tunnel.
+### Data flow (high level)
 
-    ## 2. What Problem This Project Solves
+Secret -> Payload envelope -> AES-256-GCM -> LSB embed -> Stego PNG -> Share API (optional) -> LSB extract -> AES-256-GCM decrypt -> Envelope parse -> Text or file
 
-    Traditional communication channels can expose the existence of sensitive data. Even when a message is encrypted, observers can still see that a secret message exists.
+## Feature summary table
+
+| Feature | What it does | Core algorithms | OOP concepts used |
+| --- | --- | --- | --- |
+| Hide (Encrypt + Embed) | Protects and hides payload inside an image | PBKDF2, AES-256-GCM, LSB embed | Encapsulation, SRP, composition |
+| Extract (Recover + Decrypt) | Recovers hidden data and restores content | LSB extract, AES-256-GCM | Abstraction, immutability, SRP |
+| Secure Share (Mailboxes) | Sends and receives stego images via authenticated inboxes | PBKDF2 hash, Base64, UUID | Encapsulation, interface usage, composition |
+| Stego Analyzer | Estimates if an image likely contains hidden data | Chi indicator, entropy, transitions, header check | SRP, data model class |
+
+## Feature deep dive
+
+### Feature 1: Hide (Encrypt and embed)
+
+- **What it does:** Takes a secret text or file, wraps it in a structured envelope, encrypts it, and embeds it into the least-significant bits of a carrier image. The output is a lossless PNG.
+- **Algorithms used:** PBKDF2-HMAC-SHA256 for key derivation, AES-256-GCM for encryption and integrity, LSB embedding for steganography, PNG lossless output to preserve hidden bits.
+- **OOP concepts used:** Encapsulation via `EncryptionService` and `SteganographyEngine`, SRP through separate classes for crypto, stego, and payload formatting, composition because these modules are orchestrated together by the UI logic.
+- **Key files:** [app.js](app.js), [PayloadEnvelope.java](PayloadEnvelope.java), [EncryptionService.java](EncryptionService.java), [SteganographyEngine.java](SteganographyEngine.java), [ImageHandler.java](ImageHandler.java)
+- **Flow:** 1) collect secret -> 2) build envelope -> 3) derive key -> 4) encrypt -> 5) embed -> 6) export PNG.
+
+### Feature 2: Extract (Recover and decrypt)
+
+- **What it does:** Reads hidden bytes from a stego image, decrypts them with the same password, then restores the original text or file.
+- **Algorithms used:** LSB extraction to recover the ciphertext, AES-256-GCM decryption with integrity verification, envelope parsing to recover metadata and payload.
+- **OOP concepts used:** Abstraction because `PayloadEnvelope.parse` hides binary details, immutability in `DecodedPayload` fields, SRP in classes that each handle one responsibility.
+- **Key files:** [app.js](app.js), [PayloadEnvelope.java](PayloadEnvelope.java), [EncryptionService.java](EncryptionService.java), [SteganographyEngine.java](SteganographyEngine.java), [TestExtract.java](TestExtract.java)
+- **Flow:** 1) load stego image -> 2) extract bytes -> 3) decrypt -> 4) parse envelope -> 5) show text or download file.
+
+### Feature 3: Secure Share (Mailbox messaging)
+
+- **What it does:** Provides a local mailbox system where users register an inbox, send stego images, list messages, download a message, and delete it after retrieval.
+- **Algorithms used:** PBKDF2-HMAC-SHA256 for passphrase hashing, Base64 for image transport, UUID for message identifiers.
+- **OOP concepts used:** Encapsulation in `SecureShareServer`, interface-based design via `HttpHandler`, composition through reusable request wrappers like `withCors`.
+- **Key files:** [SecureShareServer.java](SecureShareServer.java), [server.py](server.py), [shared](shared), [app.js](app.js)
+- **Flow:** 1) register mailbox -> 2) authenticate -> 3) send or list -> 4) download -> 5) delete.
 
-    StegOS addresses this by combining:
+### Feature 4: Stego Analyzer (Detection report)
 
-    1. Confidentiality through encryption.
-    2. Concealment through steganography.
-    3. Practical distribution through mailbox-based sharing.
-    4. Verification through stego analysis.
+- **What it does:** Runs statistical checks on an image and produces a confidence score with a verdict: likely hidden data, suspicious, or likely clean.
+- **Algorithms used:** LSB ratio balance per channel, chi-style anomaly indicator, binary entropy, bit transition ratio, header plausibility check.
+- **OOP concepts used:** SRP in `StegoAnalyzer` focusing only on analysis, data model in `Report` for clean output structure.
+- **Key files:** [StegoAnalyzer.java](StegoAnalyzer.java), [app.js](app.js)
+- **Flow:** 1) scan image pixels -> 2) compute metrics -> 3) score confidence -> 4) label verdict.
 
-    So the project does not only hide content; it provides a full secure communication workflow.
+## Supporting capabilities
 
-    ## 3. How the Project Works End to End
+### Unified payload envelope
 
-    The system has four functional modes.
+- **What it does:** Stores both text and file payloads in one binary format with metadata and length fields, so the same pipeline works for both.
+- **Algorithm or format:** Fixed header `STG1`, type flag, file name and MIME lengths, payload length, then data.
+- **OOP concepts used:** Utility class pattern and factory methods in `PayloadEnvelope` for clarity and safety.
+- **Key files:** [PayloadEnvelope.java](PayloadEnvelope.java), [app.js](app.js)
 
-    ### Hide Mode
+### Capacity awareness and lossless output
 
-    1. The user selects a carrier image.
-    2. The user chooses secret content type: text or file.
-    3. The system wraps data into a structured payload envelope.
-    4. The payload is encrypted using password-derived AES-256-GCM.
-    5. The encrypted bytes are embedded into image pixel least-significant bits.
-    6. The output is exported as a lossless PNG so hidden bits survive.
+- **What it does:** Shows how much space an image can carry and ensures the output is lossless to keep embedded bits intact.
+- **Algorithms used:** Capacity = width * height * 3 / 8 bytes, PNG export for lossless storage.
+- **OOP concepts used:** SRP in `ImageHandler` for image I/O utilities.
+- **Key files:** [ImageHandler.java](ImageHandler.java), [app.js](app.js)
 
-    ### Extract Mode
-
-    1. The user loads a stego image.
-    2. The system extracts hidden bits and reconstructs encrypted payload bytes.
-    3. The user-provided password is used to decrypt the payload.
-    4. The envelope is parsed to restore either text or original file.
-    5. The recovered output is shown for copy or downloaded as a file.
-
-    ### Secure Share Mode
-
-    1. A mailbox is registered with mailbox ID and passphrase.
-    2. A generated stego image is sent to that mailbox.
-    3. Inbox list retrieves available messages with sender and timestamp.
-    4. A selected message can be downloaded and loaded into extract flow.
-    5. Messages can be deleted from mailbox storage after use.
-
-    ### Analyze Mode
-
-    1. A target image is loaded.
-    2. LSB and channel statistics are measured.
-    3. Multiple indicators are combined into confidence score.
-    4. The result is classified into likely clean, suspicious, or likely hidden data.
-
-    ## 4. Technology Stack Used
-
-    This project uses a mixed frontend-backend architecture.
-
-    ### Frontend Technologies
-
-    1. HTML for structure and feature views.
-    2. CSS for dashboard and interactive UI styling.
-    3. JavaScript for application logic and orchestration.
-    4. Browser Web Crypto API for encryption and key derivation.
-    5. Canvas API for pixel-level steganography operations.
-    6. File APIs for reading and generating downloadable outputs.
-    7. Bootstrap and icon assets for UI components and visual consistency.
-    8. GSAP animations for guided transitions and interactions.
-
-    ### Backend Technologies
-
-    1. Java for secure sharing server and core algorithm modules.
-    2. Java HttpServer for lightweight API hosting.
-    3. Java cryptography primitives for password hashing and validation.
-    4. Filesystem-based mailbox storage using properties metadata plus image files.
-
-    ### Launcher and Utility Technologies
-
-    1. Python launcher script to simplify startup of frontend and backend.
-    2. Optional ngrok tunnel integration for exposing local share API publicly.
-
-    ## 5. Core Security Model
-
-    The project uses layered security instead of relying on only one technique.
-
-    ### Layer 1: Encryption
-
-    The payload is encrypted before embedding, so raw secret data is never written directly into image bits.
-
-    ### Layer 2: Password-Based Key Derivation
-
-    A user password is transformed into a strong cryptographic key using PBKDF2 and many iterations. This reduces risk from weak direct password usage.
-
-    ### Layer 3: Authenticated Encryption
-
-    AES-GCM not only encrypts data but also verifies integrity during decryption. If bytes are modified or password is wrong, extraction fails safely.
-
-    ### Layer 4: Concealment in Carrier Image
-
-    Ciphertext is hidden in low-impact image bits so the image appears visually normal under casual viewing.
-
-    ### Layer 5: Mailbox Access Protection
-
-    Mailbox credentials are validated using hashed passphrase material, limiting unauthorized access to inbox operations.
-
-    ## 6. Detailed Feature Explanation
-
-    ### 6.1 Unified Payload Envelope
-
-    The project stores secret data in a structured envelope format that includes payload type and metadata.
-
-    Why this matters:
-
-    1. One common pipeline supports both text and files.
-    2. File name and MIME metadata help accurate reconstruction.
-    3. Future extension is easier because payload format is explicit.
-
-    ### 6.2 Text and File Hiding
-
-    Users can hide a short message or a complete file. This makes the system practical for many scenarios such as notes, credentials bundles, documents, and binary attachments.
-
-    Why this matters:
-
-    1. It is not just a message demo.
-    2. File-level support increases real-world usefulness.
-
-    ### 6.3 Capacity Awareness Before Embedding
-
-    The UI estimates required space and available image capacity before encoding.
-
-    Why this matters:
-
-    1. Prevents failed embeddings.
-    2. Helps users pick suitable carrier image dimensions.
-    3. Improves UX with predictable behavior.
-
-    ### 6.4 Lossless Output Strategy
-
-    The generated stego image is saved as PNG. This is intentional because lossy formats such as JPEG can damage hidden bits.
-
-    Why this matters:
-
-    1. Preserves recoverability.
-    2. Reduces accidental data loss after embedding.
-
-    ### 6.5 Extraction with Content Auto-Handling
-
-    During extraction, the app determines whether decrypted content is text or file and then renders the correct recovery path automatically.
-
-    Why this matters:
-
-    1. Less manual handling for users.
-    2. Clean output experience for both payload types.
-
-    ### 6.6 Mailbox Registration and Authentication
-
-    A mailbox ID and passphrase model is used to gate message operations.
-
-    Why this matters:
-
-    1. Prevents open anonymous inbox access.
-    2. Allows simple identity separation among users.
-    3. Keeps implementation lightweight for local or lab usage.
-
-    ### 6.7 Send, List, Download, and Delete Messaging Workflow
-
-    Secure Share includes full inbox lifecycle operations, not only send.
-
-    Why this matters:
-
-    1. Creates complete communication loop.
-    2. Makes receiver workflow practical.
-    3. Supports cleanup after retrieval.
-
-    ### 6.8 Auto-Handoff from Share to Extract
-
-    Downloaded mailbox messages can be loaded directly into extraction flow.
-
-    Why this matters:
-
-    1. Reduces friction for receiver.
-    2. Connects modules as one continuous workflow.
-
-    ### 6.9 Statistical Stego Analyzer
-
-    Analyzer computes several indicators and combines them into confidence score and verdict.
-
-    Main indicators explained:
-
-    1. LSB ratio balance by channel.
-    Measures how 0 and 1 bits are distributed in least-significant positions.
-
-    2. Chi-based channel indicator.
-    Looks for parity patterns that often shift after embedding.
-
-    3. Entropy term.
-    Captures randomness behavior in extracted bit distribution.
-
-    4. Bit transition ratio.
-    Observes local bit change frequency across read order.
-
-    5. Header plausibility check.
-    Evaluates whether early embedded length pattern is structurally believable.
-
-    Why this matters:
-
-    1. Gives explainable analysis instead of blind yes/no output.
-    2. Useful for education and controlled forensic demonstrations.
-
-    ### 6.10 Local-First Privacy Model
-
-    Hide, extract, and analyze operate directly in browser runtime on local machine.
-
-    Why this matters:
-
-    1. Reduces dependence on external services.
-    2. Improves privacy in demos and offline environments.
-
-    ## 7. Project Architecture by File Responsibility
-
-    ### Frontend Core
-
-    1. index.html
-    Hosts all views and interactive sections for dashboard, hide, extract, share, and analyze.
-
-    2. styles.css
-    Defines visual design, layout behavior, feature cards, panels, and responsive behavior.
-
-    3. app.js
-    Main browser logic for encryption, steganography, API calls, UI state, and analyzer logic.
-
-    ### Java Core and API
-
-    1. EncryptionService.java
-    Handles key derivation and authenticated encryption/decryption.
-
-    2. PayloadEnvelope.java
-    Defines unified payload format for text and file transfer.
-
-    3. SteganographyEngine.java
-    Handles LSB embedding and extraction mechanics in Java form.
-
-    4. StegoAnalyzer.java
-    Produces analysis report and confidence classification.
-
-    5. ImageHandler.java
-    Handles image loading, capacity calculation, and PNG saving utilities.
-
-    6. SecureShareServer.java
-    Provides mailbox API endpoints and filesystem-backed message storage.
-
-    7. TestExtract.java
-    Utility test path for extraction and decryption verification.
-
-    ### Launcher and Runtime Support
-
-    1. server.py
-    Unified launcher that can compile Java, start share API, start frontend server, and optionally configure a public tunnel.
-
-    ## 8. Operational Workflow in Practical Use
-
-    A practical usage sequence is:
-
-    1. Start the suite locally through the launcher.
-    2. Hide text or file in a selected carrier image.
-    3. Download stego PNG output.
-    4. Share through mailbox workflow.
-    5. Receiver downloads message from inbox.
-    6. Receiver extracts and decrypts with agreed password.
-    7. Optional analyzer checks suspicion level on target images.
-
-    ## 9. Design Strengths
-
-    This project is strong in the following areas:
-
-    1. End-to-end thought process from generation to distribution to recovery.
-    2. Clear separation between concealment and cryptographic protection.
-    3. Practical local API model for collaboration demonstrations.
-    4. Better interpretability through analyzer metrics.
-    5. Unified payload design that scales from text to binary file handling.
-
-    ## 10. Current Constraints and Important Notes
-
-    1. Stego output should remain in lossless formats for reliable recovery.
-    2. Analyzer output is heuristic confidence, not absolute legal proof.
-    3. Mailbox protection is suitable for controlled environments and learning use.
-    4. Production deployment should add hardened controls such as strict HTTPS and stronger operational governance.
-
-    ## 11. Ideal Use Cases
-
-    1. Academic demonstrations of cryptography plus steganography.
-    2. Security lab projects and viva presentations.
-    3. Prototype private communication workflows.
-    4. Stego detection experiments and metric interpretation training.
-
-    ## 12. Summary
-
-    StegOS Secure Suite is a complete secure steganography system, not only an embedding script. It provides:
-
-    1. Confidential hidden payload creation.
-    2. Reliable extraction and content recovery.
-    3. Authenticated mailbox-based stego sharing.
-    4. Statistical analyzer for hidden-data suspicion scoring.
-
-    As a project, it demonstrates strong understanding of security layering, practical software architecture, and real-world communication flow design.
+### Local launcher and proxy
+
+- **What it does:** Compiles Java, starts the share API, serves the frontend, and proxies share endpoints for the browser.
+- **Algorithms used:** HTTP proxying and health checks, simple process management.
+- **OOP concepts used:** Procedural orchestration in a single script for simplicity.
+- **Key files:** [server.py](server.py)
+
+## Algorithms reference
+
+| Area | Algorithm or method | Purpose |
+| --- | --- | --- |
+| Key derivation | PBKDF2-HMAC-SHA256 | Turn password into a strong AES key |
+| Encryption | AES-256-GCM | Confidentiality and integrity |
+| Steganography | LSB embed and extract | Hide bits in image channels |
+| Analysis | Chi indicator, entropy, transitions | Detect suspicious stego patterns |
+| Mailbox auth | PBKDF2-HMAC-SHA256 + constant time compare | Protect inbox access |
+| Data transport | Base64 | Move images through JSON APIs |
+
+## Java OOP concepts mapping
+
+| OOP concept | Where it appears | Why it matters |
+| --- | --- | --- |
+| Encapsulation | `EncryptionService`, `SteganographyEngine`, `SecureShareServer` | Keeps data and logic together and easy to reuse |
+| Abstraction | `PayloadEnvelope.parse`, `StegoAnalyzer.analyze` | Hides low-level details behind clean methods |
+| Single Responsibility | Separate classes for crypto, stego, analysis, image I/O | Improves testability and clarity |
+| Immutability | `PayloadEnvelope.DecodedPayload` fields are `final` | Prevents accidental changes after parsing |
+| Factory methods | `DecodedPayload.text`, `DecodedPayload.file` | Creates valid objects with clear intent |
+| Composition | Modules orchestrated in UI logic | Enables flexible feature assembly |
+| Interface usage | `HttpHandler` in the share server | Enables consistent request handling |
+
+## Repository map
+
+| File or folder | Responsibility |
+| --- | --- |
+| [app.js](app.js) | Browser logic for crypto, stego, analyzer, and mailbox calls |
+| [index.html](index.html) | UI structure for Dashboard, Hide, Extract, Share, Analyze |
+| [styles.css](styles.css) | Visual system and component styling |
+| [server.py](server.py) | Local launcher and API proxy |
+| [SecureShareServer.java](SecureShareServer.java) | Mailbox API endpoints and storage |
+| [EncryptionService.java](EncryptionService.java) | PBKDF2 and AES-GCM crypto helpers |
+| [PayloadEnvelope.java](PayloadEnvelope.java) | Unified payload format for text and files |
+| [SteganographyEngine.java](SteganographyEngine.java) | LSB stego embedding and extraction |
+| [StegoAnalyzer.java](StegoAnalyzer.java) | Statistical stego detection and confidence report |
+| [ImageHandler.java](ImageHandler.java) | Image loading, capacity, and PNG export |
+| [TestExtract.java](TestExtract.java) | CLI verification for extraction and decryption |
+| [shared](shared) | Local mailbox storage root |
+| [EXPLANATION_README.md](EXPLANATION_README.md) | Long-form explanation document |
+| [plan.md](plan.md) | Upgrade plan and implementation scope |
+
+## Run locally
+
+### Option A: Use the launcher
+
+1. Make sure JDK and Python are installed.
+2. Run the launcher script (see [server.py](server.py)):
+
+```bash
+python <launcher-script>
+```
+
+Replace `<launcher-script>` with the launcher file name from the link above.
+
+This will:
+- Compile Java if needed.
+- Start the Java API on port 8088.
+- Serve the frontend on port 8080.
+- Proxy `/share-api/*` to the backend.
+
+### Option B: Manual steps
+
+```bash
+javac *.java
+java SecureShareServer 8088
+```
+
+Then open [index.html](index.html) in a browser (or serve it with any static server).
+
+## Practical notes
+
+- Always use PNG or BMP for extraction. JPEG is lossy and may destroy hidden data.
+- The analyzer provides a probability-style verdict, not legal proof.
+- For production use, add HTTPS, stricter CORS, and server hardening.
